@@ -90,9 +90,18 @@ class WebGrabber( object ):
         
         return ( timeseries, history, parser.get_headers(), )
 
-import webbrowser, os
-        
+
+def get_current_ymd():
+    #cur = datetime.datetime.now()
+    return datetime.date.today().strftime('%Y%m%d')
+
+import webbrowser, os        
 if __name__ == '__main__':
+    print get_current_ymd()            
+    url = '.\\%s'%get_current_ymd()
+    if not os.path.exists( url ):
+        os.mkdir( url )
+            
     if not DEVELOPMENT:
         url = ['http://data.eastmoney.com/zjlx/',
         'http://data.eastmoney.com/zjlx/zs399006.html',
@@ -108,8 +117,7 @@ if __name__ == '__main__':
             for file in os.listdir( root ):
                 if os.path.isfile( os.path.join(root, file )):
                     yield file
-                    
-        url = '.\\20160201'
+        
         for file in get_files( url ):
             if not file.endswith('html'): continue
             fullname = os.path.join( url, file)
