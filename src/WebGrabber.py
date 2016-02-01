@@ -109,7 +109,7 @@ if __name__ == '__main__':
                 if os.path.isfile( os.path.join(root, file )):
                     yield file
                     
-        url = 'D:\\workspace\\CapMkt\\src\\20160201'
+        url = '.\\20160201'
         for file in get_files( url ):
             if not file.endswith('html'): continue
             fullname = os.path.join( url, file)
@@ -125,7 +125,3 @@ if __name__ == '__main__':
                     ofile.write('\n')
                 ofile.close()
                 print 'file written: %s'%( ofilename )
-                
-        #url = 'D:\\workspace\\CapMkt\\src\\tmp\\zs399006.html'
-    #eastmoney = WebGrabber( url )
-    #eastmoney.grab() 
