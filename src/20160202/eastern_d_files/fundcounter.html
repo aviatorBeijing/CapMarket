@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0079)http://www.1234567.com.cn/fundcounter.html?pvi=44350299774669&si=55526791978627 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	
+	<meta content="telephone=no" name="format-detection">
+	<meta content="东方财富网" name="description">
+	<title>东财统计</title>
+</head>
+<body>
+
+<script type="text/javascript">
+	var COOKIE_PRE = "st_";
+	var url = window.location.href;
+	var siArr = url.split("&si=");
+	var pviArr = siArr[0].split("?pvi=");
+	setCookie(COOKIE_PRE+'pvi',pviArr[1]);
+	setCookie(COOKIE_PRE+'si',siArr[1],-1);
+	function setCookie(name,value,time)
+	{ 
+	    var strsec = 999999*24*60*60*1000; 
+	    var exp = new Date(); 
+	    exp.setTime(exp.getTime() + strsec*1);
+
+	    if(time==-1){
+	    	document.cookie = name + "="+ escape (value) + ";domain=.1234567.com.cn;path=/";
+	    }else{
+	    	document.cookie = name + "="+ escape (value) + ";domain=.1234567.com.cn;path=/;expires=" + exp.toGMTString(); 
+	    }
+	}	
+</script></body></html>

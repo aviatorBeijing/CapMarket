@@ -94,6 +94,8 @@ class WebGrabber( object ):
 def get_current_ymd():
     #cur = datetime.datetime.now()
     return datetime.date.today().strftime('%Y%m%d')
+def get_ymd( adatetime ):
+    return adatetime.strftime('%Y%m%d')
 
 import webbrowser, os        
 if __name__ == '__main__':
@@ -114,20 +116,23 @@ if __name__ == '__main__':
 
     if DEVELOPMENT:
         def get_files( root ):
-            for file in os.listdir( root ):
-                if os.path.isfile( os.path.join(root, file )):
-                    yield file
+            for afile in os.listdir( root ):
+                if os.path.isfile( os.path.join(root, afile )):
+                    yield afile
         
-        for file in get_files( url ):
-            if not file.endswith('html'): continue
-            fullname = os.path.join( url, file)
+        for afile in get_files( url ):
+            if not afile.endswith('html'): continue
+            fullname = os.path.join( url, afile)
             print '\n\n', fullname
+            modtime = os.path.getmtime( fullname )
+            
             eastmoney = WebGrabber( fullname )
             ts, hs, headers = eastmoney.grab()
             if len(hs)>0:
-                ofilename = os.path.join(url, "%s.csv"%file)
+                ofilename = os.path.join(url, "%s.csv"%afile)
                 ofile = open( ofilename, 'w')
-                ofile.write( ',closing,,major,,%s\n'%( ','.join( headers ) ))
+                ofile.write( 'timestamp: %s,closing,,major,,%s\n'%( datetime.datetime.utcfromtimestamp( modtime ),
+                                                            ','.join( headers ) ) )
                 for row in hs:                    
                     ofile.write( ','.join( row ).encode('GBK') )
                     ofile.write('\n')
