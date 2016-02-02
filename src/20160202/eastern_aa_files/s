@@ -1,0 +1,2 @@
+var eastmoney_c1312='document.write(\'<div style="width:1000px;height:90px;border:none;padding:0px;margin:0px;overflow:hidden;position:relative;"><a href="http://same.eastmoney.com/c?z=eastmoney&la=0&si=1&cg=28&c=1312&ci=1&or=47&l=13091&bg=13091&b=14857&u=http://js5.eastmoney.com/tg.aspx?ID=1265" target="_blank"><img src="http://g1.dfcfw.com/g1/201602/20160201112110.gif" style="width:1000px;height:90px;border:none;" /></a></div>\');\n';
+eval(eastmoney_c1312);

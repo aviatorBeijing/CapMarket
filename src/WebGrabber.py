@@ -4,21 +4,16 @@ from lxml import etree
 import urllib2
 import urllib
 
-DEVELOPMENT = True
+PARSEHTML = True
 
-class HTMLParser( object ):
+class HTMLParserEastern( object ):
     def __init__(self, html, encoding='utf-8', **argv ):
         argv.update( {'html':html, 'encoding':encoding })
         self.encoding_ = encoding
         
         self.headers_ = ['superlr', 'superlc', 'ddlr', 'ddlc', 'zdlr', 'zdlc','xdlr', 'xdlc']
         
-        resp, trunks = '', True
-        if not DEVELOPMENT:
-            while trunks:
-                trunks =  html.read(512)
-                resp += trunks
-        else: resp = html.read()
+        resp = html.read()
         self.root_ = etree.HTML(  resp.decode( encoding )  )
     
     def get_headers(self):
@@ -70,16 +65,16 @@ class WebGrabber( object ):
         req.add_header('User-Agent', 'User-Agent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2490.71 Safari/537.36')
         return req
     
-    def grab(self):
+    def grab(self, local=True):
         response = None
-        if not DEVELOPMENT:
+        if not local:
             header = self.header( self.url_)
             response = urllib2.urlopen( header )
             charset = response.headers.getheader('Content-Type')
             print charset
         else:
             response = open( self.url_ )
-        parser = HTMLParser( response, encoding='GBK')
+        parser = HTMLParserEastern( response, encoding='GBK')
         timeseries = parser.extract_ts( )
         history = parser.extract_hs( )
         if len(history):
@@ -90,51 +85,64 @@ class WebGrabber( object ):
         
         return ( timeseries, history, parser.get_headers(), )
 
-
+''' 
+Generic functions
+'''
 def get_current_ymd():
     #cur = datetime.datetime.now()
     return datetime.date.today().strftime('%Y%m%d')
 def get_ymd( adatetime ):
     return adatetime.strftime('%Y%m%d')
 
-import webbrowser, os        
-if __name__ == '__main__':
-    print get_current_ymd()            
-    url = '.\\%s'%get_current_ymd()
-    if not os.path.exists( url ):
-        os.mkdir( url )
-            
-    if not DEVELOPMENT:
-        url = ['http://data.eastmoney.com/zjlx/',
+''' 
+Applications for Eastern .com
+'''
+def eastern_view_pages(  ):
+    urls = ['http://data.eastmoney.com/zjlx/',
         'http://data.eastmoney.com/zjlx/zs399006.html',
         'http://data.eastmoney.com/zjlx/zs399001.html',
         'http://data.eastmoney.com/zjlx/zs000001.html']
-        browser = webbrowser.get()
-        browser.open( url[0], new=2 )
-        for item in url[1:]:
-            browser.open_new_tab( item )
+    browser = webbrowser.get()
+    browser.open( urls[0], new=2 )
+    for item in urls[1:]:
+        browser.open_new_tab( item )
 
-    if DEVELOPMENT:
-        def get_files( root ):
-            for afile in os.listdir( root ):
-                if os.path.isfile( os.path.join(root, afile )):
-                    yield afile
+def eastern_process_html_files( dirname ):   
+    def get_files( root ):
+        for afile in os.listdir( root ):
+            if os.path.isfile( os.path.join(root, afile )):
+                yield afile
+    
+    for afile in get_files( dirname ):
+        if not afile.endswith('html'): continue
+        fullname = os.path.join( dirname, afile)
+        print '\n\n', fullname
+        modtime = os.path.getmtime( fullname )
         
-        for afile in get_files( url ):
-            if not afile.endswith('html'): continue
-            fullname = os.path.join( url, afile)
-            print '\n\n', fullname
-            modtime = os.path.getmtime( fullname )
-            
-            eastmoney = WebGrabber( fullname )
-            ts, hs, headers = eastmoney.grab()
-            if len(hs)>0:
-                ofilename = os.path.join(url, "%s.csv"%afile)
-                ofile = open( ofilename, 'w')
-                ofile.write( 'timestamp: %s,closing,,major,,%s\n'%( datetime.datetime.utcfromtimestamp( modtime ),
-                                                            ','.join( headers ) ) )
-                for row in hs:                    
-                    ofile.write( ','.join( row ).encode('GBK') )
-                    ofile.write('\n')
-                ofile.close()
-                print 'file written: %s'%( ofilename )
+        eastmoney = WebGrabber( fullname )
+        ts, hs, headers = eastmoney.grab()
+        if len(hs)>0:
+            ofilename = os.path.join(dirname, "%s.csv"%afile)
+            ofile = open( ofilename, 'w')
+            ofile.write( 'timestamp: %s,closing,,major,,%s\n'%( datetime.datetime.utcfromtimestamp( modtime ),
+                                                        ','.join( headers ) ) )
+            for row in hs:                    
+                ofile.write( ','.join( row ).encode('GBK') )
+                ofile.write('\n')
+            ofile.close()
+            print 'file written: %s'%( ofilename ) 
+                
+import webbrowser, os        
+if __name__ == '__main__':
+    print get_current_ymd()            
+                
+    if not PARSEHTML:
+        eastern_view_pages( )
+
+    if PARSEHTML:
+        url = '.\\%s'%get_current_ymd()
+        if not os.path.exists( url ):
+            os.mkdir( url )
+        eastern_process_html_files( url )
+        
+        
