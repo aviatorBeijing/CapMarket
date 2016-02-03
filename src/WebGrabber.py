@@ -8,6 +8,7 @@ import urllib
 Control switches
 '''
 PARSEHTML = True
+CALCULATE = True
 
 '''
 Parsers
@@ -149,17 +150,21 @@ def eastern_view_pages(  ):
     browser.open( urls[0], new=2 )
     for item in urls[1:]:
         browser.open_new_tab( item )
+
+
+def get_files( root ):
+    for afile in os.listdir( root ):
+        if os.path.isfile( os.path.join(root, afile )):
+            yield afile
+
+
 import csv
 def eastern_process_html_files( dirname ):   
     '''
     Parse local buffer files.
     dirname [in]: the local directory, usually looks like: ./20160102/
     '''
-    def get_files( root ):
-        for afile in os.listdir( root ):
-            if os.path.isfile( os.path.join(root, afile )):
-                yield afile
-    
+        
     for afile in get_files( dirname ):
         if not afile.endswith('html'): continue
         fullname = os.path.join( dirname, afile)
@@ -189,19 +194,38 @@ def eastern_process_html_files( dirname ):
                     print ''
             infile.close()
              end '''
+
+def eastern_calc( dirname ):
+    market_data_map = {}
+    
+    for afile in get_files( dirname ):
+        if afile.endswith( '.csv'):
+            fullname = os.path.join( dirname, afile )
+            
+            with open( fullname, 'r') as infile:
+                creader = csv.reader( infile )
+                market = creader.next()[1]
+                timestamp = creader.next()[1]
+                print timestamp, market
+                
+                creader.next()
+                for row in creader:
+                    print row               
+                
                 
 import webbrowser, os        
 if __name__ == '__main__':
-    print get_current_ymd()            
-                
-    if not PARSEHTML:
-        eastern_view_pages( )
-
-    if PARSEHTML:
-        url = '.\\%s'%get_current_ymd()
-        #url = '.\\20160201'
-        if not os.path.exists( url ):
-            os.mkdir( url )
-        eastern_process_html_files( url )
+    print get_current_ymd()
         
-        
+    if CALCULATE:
+        eastern_calc( '.\\%s'%get_current_ymd())
+    else:
+        if not PARSEHTML:
+            eastern_view_pages( )
+    
+        if PARSEHTML:
+            url = '.\\%s'%get_current_ymd()
+            #url = '.\\20160203'
+            if not os.path.exists( url ):
+                os.mkdir( url )
+            eastern_process_html_files( url )
