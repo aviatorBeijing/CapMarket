@@ -4,8 +4,14 @@ from lxml import etree
 import urllib2
 import urllib
 
+'''
+Control switches
+'''
 PARSEHTML = True
 
+'''
+Parsers
+'''
 class HTMLParserEastern( object ):
     def __init__(self, html, encoding='utf-8', **argv ):
         argv.update( {'html':html, 'encoding':encoding })
@@ -17,9 +23,17 @@ class HTMLParserEastern( object ):
         self.root_ = etree.HTML(  resp.decode( encoding )  )
     
     def get_headers(self):
+        '''
+        Get the headers that were searched.
+        '''
         return self.headers_
         
     def extract_ts(self ):
+        '''
+        Extract section of data in first section of the html, 
+        indicated by the "<span id=data_superlr>" etc..
+        Requires the definition of "headers".
+        '''
         root = self.root_
         #for td in root.iterfind('.//td')
         #for txt in root.xpath('//td/span/text()'):
@@ -35,7 +49,12 @@ class HTMLParserEastern( object ):
         print ''
         return values
     
-    def extract_hs(self):    
+    def extract_hs(self):  
+        '''
+        Extract historical data from the html page.
+        Handles the section indicated by "<table id=dt_1>".
+        No headers are required to be definied.
+        '''  
         root = self.root_
         # Grab historical data
         history = []
@@ -49,11 +68,21 @@ class HTMLParserEastern( object ):
                         for span in td.findall('.//span'):   
                             txt = span.text
                             if u'亿' in txt: txt = txt.replace(u'亿', 'e8') 
+                            if u'万' in txt: txt = txt.replace(u'万', 'e4')
                             arow += [ txt ]
                     history += [ arow ]
                     print len( arow ),
         print '\n\t total row:', len( history )
         return history
+    
+    def extract_mkt(self):
+        '''
+        Extract the name of the market.
+        '''
+        for mkt in self.root_.xpath('//div[@class="tit"]/text()'):
+            if u'资金流向(' in mkt:
+                return mkt.strip()
+        return None
     
 class WebGrabber( object ):
     def __init__(self, url ):
@@ -66,6 +95,14 @@ class WebGrabber( object ):
         return req
     
     def grab(self, local=True):
+        '''
+        Connect to the url or local bufferred files, then calling parser.
+        local [in]: indicated whether using local buffer files, or directly connect to URL.
+        
+        TODO:
+        use selenium to fetch dynamic contents in URL. Right now, local buffer files is a work around.
+        Local buffer files need to be manually saved --- controlled by the global switch: PARSEHTML=False.
+        '''
         response = None
         if not local:
             header = self.header( self.url_)
@@ -77,13 +114,14 @@ class WebGrabber( object ):
         parser = HTMLParserEastern( response, encoding='GBK')
         timeseries = parser.extract_ts( )
         history = parser.extract_hs( )
+        mkt = parser.extract_mkt()
         if len(history):
             print 'selected history date from: %s to %s'%(
                                                       history[-1][0],
                                                       history[0][0])
         if response: response.close()
         
-        return ( timeseries, history, parser.get_headers(), )
+        return ( timeseries, history, parser.get_headers(), mkt, )
 
 ''' 
 Generic functions
@@ -98,16 +136,25 @@ def get_ymd( adatetime ):
 Applications for Eastern .com
 '''
 def eastern_view_pages(  ):
+    '''
+    Open URLs and manually save to buffer files.
+    This is a workaround. Ultimately, selenium or alike should be used.
+    '''
     urls = ['http://data.eastmoney.com/zjlx/',
         'http://data.eastmoney.com/zjlx/zs399006.html',
         'http://data.eastmoney.com/zjlx/zs399001.html',
-        'http://data.eastmoney.com/zjlx/zs000001.html']
+        'http://data.eastmoney.com/zjlx/zs000001.html',
+        'http://data.eastmoney.com/zjlx/zs399005.html']
     browser = webbrowser.get()
     browser.open( urls[0], new=2 )
     for item in urls[1:]:
         browser.open_new_tab( item )
-
+import csv
 def eastern_process_html_files( dirname ):   
+    '''
+    Parse local buffer files.
+    dirname [in]: the local directory, usually looks like: ./20160102/
+    '''
     def get_files( root ):
         for afile in os.listdir( root ):
             if os.path.isfile( os.path.join(root, afile )):
@@ -120,17 +167,28 @@ def eastern_process_html_files( dirname ):
         modtime = os.path.getmtime( fullname )
         
         eastmoney = WebGrabber( fullname )
-        ts, hs, headers = eastmoney.grab()
+        ts, hs, headers, market = eastmoney.grab()
         if len(hs)>0:
             ofilename = os.path.join(dirname, "%s.csv"%afile)
             ofile = open( ofilename, 'w')
-            ofile.write( 'timestamp: %s,closing,,major,,%s\n'%( datetime.datetime.utcfromtimestamp( modtime ),
-                                                        ','.join( headers ) ) )
+            ofile.write( 'Market:,%s\n'%market.encode('utf-8') )
+            ofile.write( u'Timestamp:, %s\n'%( datetime.datetime.utcfromtimestamp( modtime ) ))
+            ofile.write( ',closing,,major,,%s\n'%( ','.join( headers ) ) )
             for row in hs:                    
-                ofile.write( ','.join( row ).encode('GBK') )
+                ofile.write( ','.join( row ).encode('utf-8') )
                 ofile.write('\n')
             ofile.close()
             print 'file written: %s'%( ofilename ) 
+            
+            ''' debug 
+            with open( ofilename, 'r') as infile:
+                reader = csv.reader( infile )
+                for row in reader:
+                    for fd in row:
+                        print fd.decode('utf-8'),
+                    print ''
+            infile.close()
+             end '''
                 
 import webbrowser, os        
 if __name__ == '__main__':
@@ -141,6 +199,7 @@ if __name__ == '__main__':
 
     if PARSEHTML:
         url = '.\\%s'%get_current_ymd()
+        #url = '.\\20160201'
         if not os.path.exists( url ):
             os.mkdir( url )
         eastern_process_html_files( url )
