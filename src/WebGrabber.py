@@ -7,7 +7,7 @@ import urllib
 '''
 Control switches
 '''
-PARSEHTML = True
+PARSEHTML = False
 CALCULATE = False
 
 '''
