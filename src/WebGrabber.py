@@ -7,8 +7,8 @@ import urllib
 '''
 Control switches
 '''
-PARSEHTML = True
-CALCULATE = True
+PARSEHTML = False
+CALCULATE = False
 
 '''
 Parsers
@@ -157,14 +157,39 @@ def get_files( root ):
         if os.path.isfile( os.path.join(root, afile )):
             yield afile
 
-
-import csv
 def eastern_process_html_files( dirname ):   
     '''
     Parse local buffer files.
     dirname [in]: the local directory, usually looks like: ./20160102/
     '''
-        
+    
+    with open(os.path.join(dirname, 'ts.csv'), 'w') as outfile:
+        cw = outfile 
+        market_to_data = {}
+        header_not_ready = True
+        header = None
+        for afile in get_files( dirname ):
+            if not afile.endswith('.html'): continue
+            fullname = os.path.join( dirname, afile )
+            print fullname
+            modtime = os.path.getmtime(fullname )
+            ts, hs, header, market = WebGrabber( fullname ).grab()
+            if market in market_to_data.keys():
+                market_to_data[ market ] += [ [datetime.datetime.utcfromtimestamp( modtime )] + ts ]
+            else:
+                market_to_data[ market ] = [ [datetime.datetime.utcfromtimestamp( modtime )] + ts ]
+                
+        for market, data in market_to_data.items():
+            if header_not_ready: 
+                cw.write( ','.join( ['market', 'timestamp' ] + header )+'\n' )
+                header_not_ready = False
+            for a in data: 
+                if market: cw.write( market.encode('utf-8')+',' )
+                else: cw.write( ','.join(['Overall Market'])+',' )
+                cw.write( ','.join( [str(s) for s in a] )+'\n' )
+    outfile.close()
+
+    markets = set()
     for afile in get_files( dirname ):
         if not afile.endswith('html'): continue
         fullname = os.path.join( dirname, afile)
@@ -173,6 +198,11 @@ def eastern_process_html_files( dirname ):
         
         eastmoney = WebGrabber( fullname )
         ts, hs, headers, market = eastmoney.grab()
+        
+        if not market: market = 'Overall Market'
+        if market in markets: continue
+        else: markets.add( market )
+        
         if len(hs)>0:
             ofilename = os.path.join(dirname, "%s.csv"%afile)
             ofile = open( ofilename, 'w')
@@ -195,6 +225,7 @@ def eastern_process_html_files( dirname ):
             infile.close()
              end '''
 
+import csv
 def eastern_calc( dirname ):
     market_data_map = {}
     
@@ -205,12 +236,12 @@ def eastern_calc( dirname ):
             with open( fullname, 'r') as infile:
                 creader = csv.reader( infile )
                 market = creader.next()[1]
-                timestamp = creader.next()[1]
+                timestamp = creader.next()[1] 
                 print timestamp, market
                 
                 creader.next()
                 for row in creader:
-                    print row               
+                    print ', '.join([ s.decode('utf-8') for s in row ] )               
                 
                 
 import webbrowser, os        
@@ -225,7 +256,7 @@ if __name__ == '__main__':
     
         if PARSEHTML:
             url = '.\\%s'%get_current_ymd()
-            #url = '.\\20160203'
+            #url = '.\\20160204'
             if not os.path.exists( url ):
                 os.mkdir( url )
             eastern_process_html_files( url )
